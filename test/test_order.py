@@ -1,4 +1,4 @@
-from order import Order, OrderType, PegReference, Side
+from engine.order import Order, OrderType, PegReference, Side
 
 # --- Limit order -------------------------------------------------------
 o = Order(side=Side.BUY, order_type=OrderType.LIMIT, qty=100, price=10.0)
