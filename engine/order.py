@@ -62,7 +62,7 @@ class Order:
         qty: quantidade restante a ser executada
         price: preço da ordem
         peg_reference: referência de preço para ordens do tipo pegged
-        order_id: identificador
+        id: identificador
         original_qty: quantidade original da ordem no momento da criação
     """
 
@@ -71,7 +71,7 @@ class Order:
     qty: int
     price: Optional[float] = None
     peg_reference: Optional[PegReference] = None
-    order_id: str = field(default_factory=_next_order_id)
+    id: str = field(default_factory=_next_order_id)
     original_qty: int = field(init=False)
 
     def __post_init__(self) -> None:
@@ -95,7 +95,7 @@ class Order:
     def __repr__(self) -> str:  # pragma: no cover - apenas legibilidade
         price_repr = self.price if self.price is not None else "N/A"
         return (
-            f"Order({self.order_id}, {self.side}, "
+            f"Order({self.id}, {self.side}, "
             f"{self.order_type.lower()}, qty={self.qty}, "
             f"price={price_repr})"
         )
