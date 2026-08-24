@@ -121,7 +121,33 @@ class OrderBook:
             del self._orders_by_id[order.id]
             if not book[order.price]:
                 del book[order.price]
- 
+    
+    def cancel(self, order_id: str) -> Optional[Order]:
+        """Remove do book a ordem `order_id`. Retorna a ordem removida, ou None se o id não existir.
+        Complexidade: O(k) k é o número de ordems no mesmo nível de preco,
+        """
+        
+        order = self._orders_by_id.get(order_id)
+        if order is None:
+            return None
+
+        book = self._bids if order.side == Side.BUY else self._asks
+        book[order.price].remove(order)
+        del self._orders_by_id[order_id]
+        if not book[order.price]:
+            del book[order.price]
+        return order
+
+    def reduce_qty(self, order: Order, new_qty: int) -> None:
+        """Reduz a qty de `order` para `new_qty`, mantendo prioridade
+        
+        — aumentar qty é tratado como perda de prioridade em matching.py..
+        """
+        if new_qty <= 0 or new_qty > order.qty:
+            raise ValueError(
+                "reduce_qty só aceita 0 < new_qty <= qty atual da ordem"
+            )
+        order.qty = new_qty
 
     # ------------------------------------------------------------------
     # Visualização
