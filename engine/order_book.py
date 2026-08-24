@@ -14,7 +14,7 @@ from __future__ import annotations
 import heapq
 from collections import deque
 from typing import Deque, Dict, List, Optional, Tuple
-from engine.order import Order, OrderType, Side
+from order import Order, OrderType, Side
 
 class OrderBook:
     """Mantém o livro de ofertas de um único ativo."""
@@ -94,6 +94,34 @@ class OrderBook:
         do mesmo preço, da mais antiga para a mais recente (FIFO).
         """
         return self._orders_sorted(self._asks, reverse=False)
+
+    def peek_best(self, side: Side) -> Optional[Order]:
+        """Retorna a ordem no topo da fila do melhor nível
+        de preço para o lado indicado.
+        """
+        price = self.best_bid() if side == Side.BUY else self.best_ask()
+        if price is None:
+            return None
+        book = self._bids if side == Side.BUY else self._asks
+        return book[price][0]
+ 
+    def fill(self, order: Order, qty: int) -> None:
+        """Executa `qty` unidades da ordem `order`, que deve ser a ordem
+        no topo da fila do seu nível de preço. Reduz order.qty e, se ela se esgotar, remove a
+        ordem do book.
+        """
+        if qty <= 0 or qty > order.qty:
+            raise ValueError("qty de fill inválida")
+ 
+        book = self._bids if order.side == Side.BUY else self._asks
+        order.qty -= qty
+ 
+        if order.qty == 0:
+            book[order.price].popleft()
+            del self._orders_by_id[order.id]
+            if not book[order.price]:
+                del book[order.price]
+ 
 
     # ------------------------------------------------------------------
     # Visualização
