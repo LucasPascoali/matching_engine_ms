@@ -47,6 +47,43 @@ class MatchingEngine:
             f"{order.order_type.name}; será implementado em pegged.py."
         )
 
+    def cancel(self, order_id: str) -> Optional[Order]:
+        """Cancela a ordem `order_id`.
+        """
+        return self.book.cancel(order_id)
+
+    def modify(self,order_id: str,new_price: Optional[float] = None,new_qty: Optional[int] = None,) -> List[Trade]:
+        """Altera preço e/ou qty da ordem `order_id`.
+
+        Regra de prioridade:
+            - Só reduzir qty: mantém a posição na fila.
+            
+            - Mudar o preço, ou aumentar qty: perde prioridade (cancel/replace)
+        """
+        
+        order = self.book.get_order(order_id)
+        if order is None:
+            raise ValueError(f"ordem {order_id} não encontrada no book")
+
+        price_changed = new_price is not None and new_price != order.price
+        qty_increased = new_qty is not None and new_qty > order.qty
+
+        if not price_changed and not qty_increased:
+            if new_qty is not None and new_qty != order.qty:
+                self.book.reduce_qty(order, new_qty)
+            return []
+
+        cancelled = self.book.cancel(order_id)
+        replacement = Order(
+            side=cancelled.side,
+            order_type=cancelled.order_type,
+            qty=new_qty if new_qty is not None else cancelled.qty,
+            price=new_price if new_price is not None else cancelled.price,
+            peg_reference=cancelled.peg_reference,
+            id=cancelled.id,
+        )
+        return self.submit(replacement)
+    
     # ------------------------------------------------------------------
     # Auxiliares internos
     # ------------------------------------------------------------------
