@@ -62,7 +62,7 @@ class Order:
         qty: quantidade restante a ser executada
         price: preço da ordem
         peg_reference: referência de preço para ordens do tipo pegged
-        order_id: identificador
+        id: identificador
         original_qty: quantidade original da ordem no momento da criação
     """
 
