@@ -90,12 +90,19 @@ class Order:
         if self.order_type != OrderType.PEGGED and self.peg_reference is not None:
             raise ValueError("peg_reference só é válido para ordens pegged")
 
+        if self.order_type == OrderType.PEGGED and self.price is not None:
+            raise ValueError(
+        "ordens pegged não devem ter price definido na criação; "
+        "o preço é calculado automaticamente pela engine a partir "
+        "do peg_reference"
+        )
+        
         self.original_qty = self.qty
 
     def __repr__(self) -> str:  # pragma: no cover - apenas legibilidade
         price_repr = self.price if self.price is not None else "N/A"
         return (
-            f"Order({self.id}, {self.side}, "
-            f"{self.order_type.lower()}, qty={self.qty}, "
+            f"Order({self.id}, {self.side.value}, "
+            f"{self.order_type.value.lower()}, qty={self.qty}, "
             f"price={price_repr})"
         )

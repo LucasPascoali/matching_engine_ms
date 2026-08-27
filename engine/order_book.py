@@ -31,17 +31,16 @@ class OrderBook:
         self._orders_by_id: Dict[str, Order] = {}
 
     def add_order(self, order: Order) -> None:
-        """Insere uma ordem no book.
-
-        Por enquanto, apenas ordens LIMIT são suportadas aqui: market
-        orders não ficam no book e pegged orders exigem lógica de reprice ainda
-        não implementada.
-        """
-        if order.order_type != OrderType.LIMIT:
+        if order.order_type not in (OrderType.LIMIT, OrderType.PEGGED):
             raise NotImplementedError(
-                f"OrderBook.add_order ainda não trata ordens do tipo "
-                f"{order.order_type.name}; isso será implementado em "
-                f"matching.py (market) e pegged.py (pegged)."
+                f"OrderBook.add_order não trata ordens do tipo "
+                f"{order.order_type.name}; market orders são IOC e "
+                f"nunca ficam no book."
+            )
+        if order.price is None:
+            raise ValueError(
+                "não é possível inserir no book uma ordem sem price "
+                "definido (pegged deve ser precificada antes de add_order)"
             )
         self._add_limit_order(order)
 
@@ -239,3 +238,4 @@ class OrderBook:
     ) -> List[Tuple[float, int]]:
         prices = sorted((p for p, dq in book.items() if dq), reverse=reverse)
         return [(p, sum(o.qty for o in book[p])) for p in prices]
+        
