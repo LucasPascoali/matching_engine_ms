@@ -1,61 +1,104 @@
 # Matching Engine
 
-Implementação de uma matching engine simples para um único ativo, suportando
-ordens *limit* e *market*, cancelamento, alteração (modify) e ordens *pegged*
-(peg to bid / peg to offer).
+Matching engine simples, em memória, para um único ativo. Python puro,
+sem dependências externas.
 
-Este projeto foi desenvolvido como parte de um processo seletivo.
+## Como rodar
 
-## Status
+```bash
+python main.py                 # REPL interativo
+python main.py < cenario.txt   # via script/pipe
+```
 
-Em desenvolvimento. O README será atualizado a cada etapa da
-implementação.
+Comandos do REPL:
 
-## Premissas e decisões de design
+```
+add buy|sell limit <qty> <price>
+add buy|sell market <qty>
+add buy|sell pegged <qty> bid|offer
+cancel <id>
+modify <id> [price=<p>] [qty=<q>]
+book
+quit
+```
 
-O enunciado deixa alguns comportamentos em aberto. As
-decisões abaixo são tomadas para refletir o comportamento mais próximo do
-que se observa em exchanges reais:
+## Estrutura
 
-1. **Limit order que cruza o book é preenchida (não ignorada).**
-   Uma limit buy a um preço igual ou superior ao melhor ask disponível será
-   executada imediatamente contra o book. Apenas a quantidade que não encontrar contraparte permanece como
-   ordem passiva no book, na sua respectiva faixa de preço. Ignorar esse
-   cruzamento geraria um comportamento contraintuitivo para quem está
-   operando.
+```
+engine
+|_ order.py            # modelos de domínio (Order, Side, OrderType, PegReference)
+|_ order_book.py         # estrutura de dados: bids/asks, heap de preços, deque por nível
+|_ matching.py             # regras de negócio: crossing, cancel, modify, pegged
+|_ main.py                  # CLI/REPL
+tests
+|_ test_*.py                 # testes
+```
 
-2. **Market order é tratada como IOC (*Immediate or Cancel*).**
-   Uma market order tenta ser preenchida imediatamente contra as melhores
-   ofertas disponíveis. Caso não haja liquidez suficiente no book para
-   preencher toda a quantidade solicitada, a parcela remanescente é
-   descartada. Isso porque uma market order não
-   possui preço de referência associado — mantê-la pendente exigiria
-   inventar um preço, o que descaracterizaria o tipo de ordem.
+Três camadas separadas por responsabilidade: `order.py` só valida uma
+ordem isolada; `order_book.py` só guarda e organiza ordens (não sabe o
+que é "cruzar" ou "pegged"); `matching.py` concentra toda a lógica de
+negócio. Isso mantém o book reutilizável e cada peça testável sozinha.
 
-3. **Prioridade preço-tempo (price-time priority).**
-   Dentro do mesmo nível de preço, ordens são preenchidas respeitando a
-   ordem de chegada (FIFO), conforme exigido no enunciado.
+## Requisitos do enunciado
 
-4. **Alteração (modify) de ordem e perda de prioridade.**
-   - Alteração de **preço**: a ordem é reinserida no final da fila do novo nível de preço, perdendo prioridade.
-   - Alteração **apenas de quantidade para menos**: a ordem mantém sua posição na fila.
-   - Alteração de quantidade **para mais**: a ordem vai para o final da fila do mesmo nível de preço, pois um aumento de quantidade poderia ser usado para "furar fila" se mantivesse a posição original.
+| Requisitos | Onde |
+|---|---|
+| Complexidade O(N) | ver [Complexidade](#complexidade) |
+| Visualização do book | `OrderBook.print_book()` |
+| Prioridade preço-tempo (FIFO) | `deque` por nível de preço |
+| Cancelamento | `MatchingEngine.cancel` |
+| Modify (preço/qty) | `MatchingEngine.modify` |
+| Pegged (bid/offer) | `MatchingEngine._submit_pegged` / `_reprice_pegged_orders` |
+| Limit que cruza o book | ver [Decisões de design](#decisões-de-design) |
+| `Trade, price: <p>, qty: <q>` | `Trade.__str__` |
 
-5. **Sem persistência.** Todas as estruturas (book, ordens, trades) vivem em
-   memória, conforme a premissa 3 do enunciado.
+## Complexidade
 
-6. **Estruturas de dados e complexidade.** será preenchido conforme o desenvolvimento
+- `add_order`, `best_bid`/`best_ask`: O(1) amortizado (heap com lazy
+  deletion — cada preço só é descartado do heap uma vez).
+- `fill`, `reduce_qty`: O(1).
+- `cancel`: O(k), k = ordens no mesmo nível de preço (busca no `deque`).
+  No pior caso O(N). Trade-off aceito: O(1) real exigiria uma lista
+  duplamente encadeada com ponteiros por ordem, complexidade extra que
+  não pareceu justificada para o escopo do exercício.
 
-## Sobre o uso de ferramentas de IA
+## Decisões de design
 
-Este projeto foi desenvolvido com o auxílio de ferramentas de Inteligência
-Artificial, conforme permitido pelo enunciado do processo seletivo. Todo o
-código, decisões técnicas e comportamento do sistema são de responsabilidade
-e autoria do candidato, que conhece integralmente a base de código e é capaz
-de explicá-la.
+- **Limit que cruza o book:** primeiro tenta executar contra o book; a
+  sobra (se houver) fica resting no seu preço-limite. Preço do trade é
+  sempre o da ordem passiva — comportamento padrão em exchanges reais.
+- **Market = IOC:** cruza o máximo possível imediatamente e descarta o
+  restante; nunca fica resting (não haveria preço válido para isso).
+- **Modify:** só reduzir qty mantém prioridade (ajuste in-place). Mudar
+  preço ou aumentar qty é tratado como cancel/replace (mesmo `id`, vai
+  para o fim da fila) — evita que alguém "segure" a fila aumentando
+  volume que nunca teve.
+- **Pegged:** preço nunca é escolhido manualmente, sempre calculado
+  pela engine a partir de `best_bid`/`best_ask`. O `OrderBook` não sabe
+  o que é pegged — a `MatchingEngine` mantém seu próprio registro e
+  manipula o book de fora.
 
-- **Ferramenta utilizada:** Claude (Anthropic) — modelo Claude Sonnet 5,
-  via interface de chat Claude.ai.
-- **Como foi usada:** apoio na estruturação do projeto, revisão de código e
-  sugestões de design. Todas as decisões de arquitetura e regras de negócio
-  foram avaliadas e validadas pelo candidato.
+### O bug de pegged (e por que existem duas leituras de "melhor preço")
+
+Pegged orders resting no book contaminavam seu próprio cálculo de
+referência: se uma pegged ocupava o topo do book, um fill parcial que
+não esvaziava o nível não movia `best_bid`/`best_ask`, então ela nunca
+reprecificava contra si mesma. O mesmo acontecia entre múltiplas
+pegged no mesmo nível sem nenhuma ordem real por trás.
+
+Solução: `_reprice_pegged_orders` remove **todas** as pegged resting do
+book antes de calcular o alvo de qualquer uma, e só então
+recalcula/reinsere. Isso porque matching precisa enxergar toda a
+liquidez (inclusive pegged), mas reprice precisa enxergar só liquidez
+real — não dá para satisfazer as duas com uma única leitura de "melhor
+preço", então a mais simples é remover fisicamente antes de perguntar.
+
+Efeito colateral aceito: a cada reprice, todas as pegged saem e voltam
+ao book (mesmo as que não mudam de preço).
+
+## Limitações conhecidas
+
+- Um único ativo por engine; sem persistência; sem concorrência.
+- `cancel` é O(k), não O(1) — ver acima.
+- Reprice de pegged reinsere todas as pegged a cada passada, mesmo as
+  que não mudam.
