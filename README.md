@@ -13,9 +13,9 @@ python main.py < cenario.txt   # via script/pipe
 Comandos do REPL:
 
 ```
-add buy|sell limit <qty> <price>
-add buy|sell market <qty>
-add buy|sell pegged <qty> bid|offer
+buy|sell limit <qty> <price>
+buy|sell market <qty>
+buy|sell pegged <qty> bid|offer
 cancel <id>
 modify <id> [price=<p>] [qty=<q>]
 book
