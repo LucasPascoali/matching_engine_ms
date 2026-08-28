@@ -2,19 +2,19 @@
 
 Uso interativo:
     $ python main.py
-    > add buy limit 100 10.5
-    > add sell limit 50 10.5
+    > buy limit 100 10.5
+    > sell limit 50 10.5
     Trade, price: 10.5, qty: 50
-    > print book
+    > book
     ...
 
 Também aceita comandos via stdin (pipe/redirect), uma linha por comando,
 o que facilita testes de integração ponta a ponta.
 
 Comandos suportados:
-    add buy|sell limit <qty> <price>
-    add buy|sell market <qty>
-    add buy|sell pegged <qty> bid|offer
+    buy|sell limit <qty> <price>
+    buy|sell market <qty>
+    buy|sell pegged <qty> bid|offer
     cancel <id>
     modify <id> [price=<novo_preco>] [qty=<nova_qty>]
     book               (alias: print book, print)
@@ -31,9 +31,9 @@ from order import Order, OrderType, PegReference, Side
 
 HELP_TEXT = """\
 Comandos disponíveis:
-  add buy|sell limit <qty> <price>       - envia ordem limit
-  add buy|sell market <qty>              - envia ordem market (IOC)
-  add buy|sell pegged <qty> bid|offer    - envia ordem pegged
+  buy|sell limit <qty> <price>       - envia ordem limit
+  buy|sell market <qty>              - envia ordem market (IOC)
+  buy|sell pegged <qty> bid|offer    - envia ordem pegged
   cancel <id>                            - cancela ordem por id
   modify <id> [price=<p>] [qty=<q>]      - altera preço e/ou qty
   book                                   - imprime o order book
@@ -55,10 +55,10 @@ class CommandError(Exception):
 
 
 def _parse_add(tokens: list[str]) -> Order:
-    # tokens já sem o "add" inicial: [side, type, qty, ...resto]
+    # tokens: [side, type, qty, ...resto]
     if len(tokens) < 3:
         raise CommandError(
-            "uso: add buy|sell limit|market|pegged <qty> [price|bid|offer]"
+            "uso: buy|sell limit|market|pegged <qty> [price|bid|offer]"
         )
 
     side_str, type_str, qty_str, *rest = tokens
@@ -83,7 +83,7 @@ def _parse_add(tokens: list[str]) -> Order:
 
     if order_type == OrderType.LIMIT:
         if not rest:
-            raise CommandError("ordem limit exige price: add buy limit <qty> <price>")
+            raise CommandError("ordem limit exige price: buy limit <qty> <price>")
         try:
             price = float(rest[0])
         except ValueError:
@@ -96,7 +96,7 @@ def _parse_add(tokens: list[str]) -> Order:
     elif order_type == OrderType.PEGGED:
         if not rest:
             raise CommandError(
-                "ordem pegged exige referência: add buy pegged <qty> bid|offer"
+                "ordem pegged exige referência: buy pegged <qty> bid|offer"
             )
         peg_reference = _PEG_MAP.get(rest[0].lower())
         if peg_reference is None:
@@ -163,8 +163,8 @@ def handle_command(engine: MatchingEngine, line: str) -> bool:
         elif cmd == "help":
             print(HELP_TEXT, end="")
 
-        elif cmd == "add":
-            order = _parse_add(args)
+        elif cmd == "buy" or cmd == "sell":
+            order = _parse_add([cmd] + args)
             engine.submit(order)
             print(f"OK: ordem {order.id} recebida")
 
