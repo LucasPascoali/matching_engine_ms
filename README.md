@@ -6,8 +6,10 @@ sem dependências externas.
 ## Como rodar
 
 ```bash
-python main.py                 # REPL interativo
-python main.py < cenario.txt   # via script/pipe
+python -m engine               # REPL interativo
+python -m tests                # Roda todos os tests
+python main.py < cenario.txt   # Roda cenario (bash)
+Get-Content .\cenario.txt | python -m engine # Roda cenario (powershell)
 ```
 
 Comandos do REPL:

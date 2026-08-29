@@ -26,8 +26,8 @@ from __future__ import annotations
 
 import sys
 
-from matching import MatchingEngine
-from order import Order, OrderType, PegReference, Side
+from engine.matching import MatchingEngine
+from engine.order import Order, OrderType, PegReference, Side
 
 HELP_TEXT = """\
 Comandos disponíveis:

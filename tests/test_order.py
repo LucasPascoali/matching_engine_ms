@@ -32,11 +32,11 @@ o = Order(side=Side.SELL, order_type=OrderType.PEGGED, qty=80, peg_reference=Peg
 assert o.peg_reference == PegReference.OFFER
 print("OK: pegged to offer")
 
-# --- order_id e original_qty --------------------------------------------
+# --- id e original_qty --------------------------------------------
 o1 = Order(side=Side.BUY, order_type=OrderType.LIMIT, qty=10, price=10.0)
 o2 = Order(side=Side.BUY, order_type=OrderType.LIMIT, qty=10, price=10.0)
-assert o1.order_id != o2.order_id
-print("OK: order_id unico")
+assert o1.id != o2.id
+print("OK: id unico")
 
 o = Order(side=Side.BUY, order_type=OrderType.LIMIT, qty=100, price=10.0)
 o.qty = 40

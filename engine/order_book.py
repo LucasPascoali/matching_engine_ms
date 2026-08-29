@@ -14,7 +14,7 @@ from __future__ import annotations
 import heapq
 from collections import deque
 from typing import Deque, Dict, List, Optional, Tuple
-from order import Order, OrderType, Side
+from engine.order import Order, OrderType, Side
 
 class OrderBook:
     """Mantém o livro de ofertas de um único ativo."""

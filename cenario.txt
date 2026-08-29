@@ -1,0 +1,136 @@
+# ==================================================================
+# Cenario de teste ponta-a-ponta para CLI.py
+# Uso: python -m engine < cenario.txt
+#
+# Cobre: help, book vazio, FIFO dentro do mesmo nivel, crossing de
+# limit (parcial e atravessando multiplos niveis), market como IOC
+# (fill total e fill parcial com descarte do resto), cancel
+# (sucesso e id inexistente), modify (reduz qty mantem prioridade,
+# aumenta qty perde prioridade, muda preco perde prioridade, muda
+# preco causando crossing, guard contra price em pegged, modify de
+# id inexistente/ja cancelado), pegged orders (pendente sem
+# referencia, precificacao ao surgir referencia, estabilidade
+# quando ainda ha ordem real no nivel, virar pendente quando so
+# sobra pegged no nivel - cenario do bug original -, multiplas
+# pegged no mesmo nivel, peg to offer) e validacoes de erro do CLI.
+# ==================================================================
+
+help
+
+# --- book vazio ---
+book
+
+# --- FIFO dentro do mesmo nivel, sem crossing ---
+buy limit 100 10.0
+buy limit 50 10.0
+sell limit 80 11.0
+book
+
+# --- limit que cruza, fill parcial da primeira ordem da fila (FIFO) ---
+sell limit 30 10.0
+book
+
+# --- limit que atravessa multiplas ordens no mesmo nivel e sobra, vira resting ---
+sell limit 150 9.5
+book
+
+# --- ordem que nao cruza, so fica resting ---
+buy limit 40 8.0
+book
+
+# --- market (IOC) que cruza multiplos niveis e fica totalmente preenchida ---
+buy market 50
+book
+
+# --- market (IOC) com liquidez insuficiente: preenche o que der e descarta o resto ---
+sell market 100
+book
+
+# --- cancel: sucesso ---
+cancel ID_3
+book
+
+# --- cancel: id inexistente ---
+cancel ID_999
+
+# --- modify: reduzir qty mantem prioridade ---
+buy limit 100 10.0
+buy limit 100 10.0
+book
+modify ID_9 qty=40
+book
+
+# --- modify: aumentar qty perde prioridade (cancel/replace) ---
+modify ID_9 qty=200
+book
+
+# --- modify: mudar preco perde prioridade ---
+modify ID_10 price=9.0
+book
+modify ID_10 price=10.0
+book
+
+# --- modify: id inexistente ---
+modify ID_999 qty=10
+
+# --- modify que causa crossing na hora ---
+sell limit 50 10.0
+book
+
+sell limit 30 12.0
+book
+modify ID_12 price=10.0
+book
+
+# --- pegged: guard contra price manual ---
+buy pegged 50 bid
+book
+modify ID_13 price=9.0
+book
+
+# --- pegged: reprice estavel enquanto ainda ha ordem real no nivel ---
+sell limit 20 9.5
+book
+
+# --- pegged: remove ordens reais uma a uma; pegged deve ficar pendente
+#     quando so sobra ela (ou outras pegged) no nivel - bug original ---
+cancel ID_9
+book
+cancel ID_10
+book
+
+# --- pegged: reprecifica quando surge nova referencia real ---
+buy limit 200 7.0
+book
+
+# --- pegged: multiplas pegged no mesmo nivel ---
+buy pegged 30 bid
+book
+
+# --- pegged: remover a unica ordem real deixa as pegged pendentes de novo ---
+cancel ID_15
+book
+
+# --- pegged: nova liquidez reprecifica ambas; peg to offer tambem ---
+buy limit 60 6.5
+sell limit 40 8.0
+book
+sell pegged 25 offer
+book
+
+# --- validacoes de erro no parsing de comandos ---
+buy limit 10
+buy market 10 5.0
+foo limit 10 5.0
+buy weird 10 5.0
+buy pegged 10
+cancel
+modify
+
+# --- modify em ordem ja cancelada ---
+modify ID_9 price=10
+
+# --- estado final ---
+book
+
+quit

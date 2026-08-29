@@ -9,8 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from order import Order, OrderType, Side, PegReference
-from order_book import OrderBook
+from engine.order import Order, OrderType, Side, PegReference
+from engine.order_book import OrderBook
 
 
 @dataclass(frozen=True)
