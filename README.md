@@ -81,7 +81,7 @@ negócio. Isso mantém o book reutilizável e cada peça testável sozinha.
   o que é pegged — a `MatchingEngine` mantém seu próprio registro e
   manipula o book de fora.
 
-### O bug de pegged (e por que existem duas leituras de "melhor preço")
+### Autoreferencia de ordens pegged
 
 Pegged orders resting no book contaminavam seu próprio cálculo de
 referência: se uma pegged ocupava o topo do book, um fill parcial que
@@ -97,7 +97,7 @@ real — não dá para satisfazer as duas com uma única leitura de "melhor
 preço", então a mais simples é remover fisicamente antes de perguntar.
 
 Efeito colateral aceito: a cada reprice, todas as pegged saem e voltam
-ao book (mesmo as que não mudam de preço).
+ao book.
 
 ## Limitações conhecidas
 
