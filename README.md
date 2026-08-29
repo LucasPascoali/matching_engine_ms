@@ -23,7 +23,6 @@ modify <id> [price=<p>] [qty=<q>]      - altera preço e/ou qty
 print book                             - imprime o order book
 help                                   - mostra esta mensagem
 quit / exit                            - encerra
-"""
 ```
 
 ## Estrutura
