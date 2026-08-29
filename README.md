@@ -15,13 +15,15 @@ Get-Content .\cenario.txt | python -m engine # Roda cenario (powershell)
 Comandos do REPL:
 
 ```
-buy|sell limit <qty> <price>
-buy|sell market <qty>
-buy|sell pegged <qty> bid|offer
-cancel <id>
-modify <id> [price=<p>] [qty=<q>]
-book
-quit
+limit buy|sell <price> <qty>       - envia ordem limit
+market buy|sell <qty>              - envia ordem market (IOC)
+peg bid|offer buy|sell <qty>       - envia ordem pegged
+cancel order <id>                      - cancela ordem por id
+modify <id> [price=<p>] [qty=<q>]      - altera preço e/ou qty
+print book                             - imprime o order book
+help                                   - mostra esta mensagem
+quit / exit                            - encerra
+"""
 ```
 
 ## Estrutura
